@@ -24,18 +24,21 @@ namespace BokApi.Controllers
             return User.FindFirstValue(ClaimTypes.Name)!;
         }
 
-        private async Task<int> GetUserIdAsync()
+        private async Task<int?> GetUserIdAsync()
         {
             var username = GetUsername();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-            return user!.Id;
+            return user?.Id;
         }
 
         // GET: api/quotes
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Quote>>> GetQuotes()
         {
-            int userId = await GetUserIdAsync();
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
             var quotes = await _context.Quotes.Where(q => q.UserId == userId).ToListAsync();
             return Ok(quotes);
         }
@@ -44,7 +47,10 @@ namespace BokApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Quote>> GetQuote(int id)
         {
-            int userId = await GetUserIdAsync();
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
             var quote = await _context.Quotes.FirstOrDefaultAsync(q => q.Id == id && q.UserId == userId);
 
             if (quote == null)
@@ -57,7 +63,11 @@ namespace BokApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Quote>> CreateQuote(Quote newQuote)
         {
-            newQuote.UserId = await GetUserIdAsync();
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            newQuote.UserId = userId.Value;
             _context.Quotes.Add(newQuote);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetQuote), new { id = newQuote.Id }, newQuote);
@@ -67,7 +77,10 @@ namespace BokApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateQuote(int id, Quote updatedQuote)
         {
-            int userId = await GetUserIdAsync();
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
             var quote = await _context.Quotes.FirstOrDefaultAsync(q => q.Id == id && q.UserId == userId);
 
             if (quote == null)
@@ -84,7 +97,10 @@ namespace BokApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteQuote(int id)
         {
-            int userId = await GetUserIdAsync();
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
             var quote = await _context.Quotes.FirstOrDefaultAsync(q => q.Id == id && q.UserId == userId);
 
             if (quote == null)

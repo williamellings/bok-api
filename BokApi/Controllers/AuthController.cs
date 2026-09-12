@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.ComponentModel.DataAnnotations;
 using BokApi.Data;
 using BokApi.Models;
 
@@ -67,7 +68,7 @@ namespace BokApi.Controllers
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddDays(1),
+                expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
             );
 
@@ -77,7 +78,12 @@ namespace BokApi.Controllers
 
     public class UserDto
     {
+        [Required]
+        [StringLength(50, MinimumLength = 3)]
         public string Username { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(100, MinimumLength = 6)]
         public string Password { get; set; } = string.Empty;
     }
 }
