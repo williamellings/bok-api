@@ -18,7 +18,10 @@ namespace BokApi
             {
                 options.AddPolicy("AllowAngularApp", policy =>
                 {
-                    policy.WithOrigins("http://localhost:4200")
+                    policy.WithOrigins(
+                            "http://localhost:4200",
+                            "https://bokapi.netlify.app"
+                          )
                           .AllowAnyMethod()
                           .AllowAnyHeader();
                 });
