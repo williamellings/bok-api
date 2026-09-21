@@ -14,6 +14,11 @@ namespace BokApi.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
+
+            // Npgsql kräver UTC för timestamptz; API:t tar emot datum utan tidszon
+            modelBuilder.Entity<Book>()
+                .Property(b => b.PublishedDate)
+                .HasColumnType("timestamp without time zone");
         }
 
         public DbSet<Book> Books { get; set; }

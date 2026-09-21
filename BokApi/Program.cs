@@ -61,7 +61,7 @@ namespace BokApi
             });
 
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(GetConnectionString(builder.Configuration)));
 
             builder.Services.AddAuthentication(options =>
             {
@@ -87,6 +87,12 @@ namespace BokApi
 
             var app = builder.Build();
 
+            // Skapar/uppdaterar tabellerna i Railway-databasen vid start
+            using (var scope = app.Services.CreateScope())
+            {
+                scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+            }
+
             app.UseForwardedHeaders();
 
             if (app.Environment.IsDevelopment())
@@ -103,6 +109,28 @@ namespace BokApi
 
             app.MapControllers();
             app.Run();
+        }
+
+        // Railway ger DATABASE_URL (postgres://user:pass@host:port/db), som Npgsql inte läser direkt
+        private static string? GetConnectionString(IConfiguration configuration)
+        {
+            var url = Environment.GetEnvironmentVariable("DATABASE_URL");
+            if (string.IsNullOrEmpty(url))
+            {
+                return configuration.GetConnectionString("DefaultConnection");
+            }
+
+            var uri = new Uri(url);
+            var userInfo = uri.UserInfo.Split(':', 2);
+            return new Npgsql.NpgsqlConnectionStringBuilder
+            {
+                Host = uri.Host,
+                Port = uri.Port > 0 ? uri.Port : 5432,
+                Database = uri.AbsolutePath.TrimStart('/'),
+                Username = Uri.UnescapeDataString(userInfo[0]),
+                Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : null,
+                SslMode = Npgsql.SslMode.Prefer
+            }.ConnectionString;
         }
     }
 }
