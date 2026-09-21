@@ -1,3 +1,5 @@
+- 🌐 Live demo: [bokapi.netlify.app](https://bokapi.netlify.app)
+
 # BokApi
 
 A .NET 9 Web API backend for the BokApp project, built as a technical test for an internship application. Provides JWT-secured CRUD endpoints for books and personal quotes.
