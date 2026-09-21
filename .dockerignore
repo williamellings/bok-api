@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/publish/
+**/publish.zip
+.vs/
+.git/
+*.user
+**/appsettings.Production.json
+**/appsettings.Development.json
+Dockerfile
+README.md
