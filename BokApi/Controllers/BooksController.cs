@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using BokApi.Models;
 using BokApi.Data;
 
@@ -18,18 +19,39 @@ namespace BokApi.Controllers
             _context = context;
         }
 
+        private string GetUsername()
+        {
+            return User.FindFirstValue(ClaimTypes.Name)!;
+        }
+
+        private async Task<int?> GetUserIdAsync()
+        {
+            var username = GetUsername();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return user?.Id;
+        }
+
         // GET: api/books
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            return Ok(await _context.Books.ToListAsync());
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            var books = await _context.Books.Where(b => b.UserId == userId).ToListAsync();
+            return Ok(books);
         }
 
         // GET: api/books/1
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
-            var book = await _context.Books.FindAsync(id);
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id && b.UserId == userId);
             if (book == null)
                 return NotFound();
 
@@ -40,6 +62,11 @@ namespace BokApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Book>> CreateBook(Book newBook)
         {
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            newBook.UserId = userId.Value;
             _context.Books.Add(newBook);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetBook), new { id = newBook.Id }, newBook);
@@ -49,7 +76,11 @@ namespace BokApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBook(int id, Book updatedBook)
         {
-            var book = await _context.Books.FindAsync(id);
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id && b.UserId == userId);
             if (book == null)
                 return NotFound();
 
@@ -65,7 +96,11 @@ namespace BokApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = await _context.Books.FindAsync(id);
+            int? userId = await GetUserIdAsync();
+            if (userId == null)
+                return Unauthorized();
+
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id && b.UserId == userId);
             if (book == null)
                 return NotFound();
 

@@ -15,5 +15,7 @@ namespace BokApi.Models
         public string Author { get; set; } = string.Empty;
 
         public DateTime PublishedDate { get; set; }
+
+        public int UserId { get; set; }
     }
 }

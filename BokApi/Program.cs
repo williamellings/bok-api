@@ -88,9 +88,28 @@ namespace BokApi
             var app = builder.Build();
 
             // Skapar/uppdaterar tabellerna i Railway-databasen vid start
+            // Databasen kan vara ostartad/nätverket inte redo direkt, så vi provar flera gånger
             using (var scope = app.Services.CreateScope())
             {
-                scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var conn = new Npgsql.NpgsqlConnectionStringBuilder(db.Database.GetConnectionString());
+                logger.LogInformation("Kör migreringar mot {Host}:{Port}/{Database}", conn.Host, conn.Port, conn.Database);
+
+                const int maxAttempts = 10;
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        db.Database.Migrate();
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < maxAttempts)
+                    {
+                        logger.LogWarning(ex, "Migrering misslyckades (försök {Attempt}/{Max}), provar igen om 5 s", attempt, maxAttempts);
+                        Thread.Sleep(TimeSpan.FromSeconds(5));
+                    }
+                }
             }
 
             app.UseForwardedHeaders();
